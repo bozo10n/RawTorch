@@ -1,21 +1,32 @@
 import numpy as np
+from numpy import dtype, float64, broadcast_to
 
 class Tensor:
     def __init__(self, data):
-        self.data = np.array(data)
+        self.data = np.array(data, dtype=float64)
         self.shape = self.data.shape
 
     def __repr__(self):
         return f"Tensor({self.data})"
+    
+    def broadcast(self, other):
+        if isinstance(other, Tensor):
+            other = other.data
+        
+        broadcasted_data = broadcast_to(other, self.shape)
+
+        return broadcasted_data
 
     def __add__(self, other):
         # to ensure other.data is a tensor
+        other = self.broadcast(other)
         if isinstance(other, Tensor):
             return Tensor(self.data + other.data)  
 
         return Tensor(self.data + other)      
     
     def __mul__(self, other):
+        other.data = self.broadcast(other)
         if isinstance(other, Tensor):
             return Tensor(self.data * other.data)
         
