@@ -1,3 +1,3 @@
 from .tensor import Tensor
 
-from .nn import NN
+from .activation import Activation_Functions as AF
