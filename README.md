@@ -1,5 +1,3 @@
-README
-
 TODO
 - AutoGrad with DAG. Each node is a tensor and edge a operation. Tracks everything and backprop just goes back
 - Layers Linear, with forward __call__ function
