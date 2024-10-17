@@ -23,7 +23,15 @@ class Tensor:
         if isinstance(other, Tensor):
             return Tensor(self.data + other.data)  
 
-        return Tensor(self.data + other)      
+        return Tensor(self.data + other)
+
+    def __sub__(self, other):
+        # to ensure other.data is a tensor
+        other = self.broadcast(other)
+        if isinstance(other, Tensor):
+            return Tensor(self.data - other.data)  
+
+        return Tensor(self.data - other)            
     
     def __mul__(self, other):
         other.data = self.broadcast(other)
@@ -37,3 +45,6 @@ class Tensor:
             return Tensor(np.dot(self.data, other.data))
         
         return Tensor(np.dot(self.data, other.data))
+    
+    def randn(shape):
+        return Tensor(np.random.randn(shape))
