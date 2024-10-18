@@ -5,7 +5,7 @@ TODO
 - Layers Linear, with forward __call__ function
 - Cost Function
 - More Layers like Conv2D, LSTM, RNN, Sequential, GRU, Embedding
-- custom cuda kernels for autograd
+- custom cuda kernels for
 
 FUTURE GOALS
 - Reinforcement learning parallel training/hybrid training 
