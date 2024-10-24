@@ -4,6 +4,11 @@ TODO
 - Cost Functions and optimizers
 - More Layers like Conv2D, LSTM, RNN, Sequential, GRU, Embedding, Extend it for Graph neural nets, Liquid Neural Nets, HSTU
 - custom cuda kernels for parallel processing
+- mix of experts in layers
+- state space models
+- world models
+- Add JAX-style function transformations (vmap, grad)
+- Support dynamic computational graphs like PyTorch 2.0
 
 FUTURE GOALS
 - Reinforcement learning parallel training/hybrid training 
