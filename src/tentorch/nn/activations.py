@@ -1,6 +1,6 @@
 import numpy as np 
 from numpy import float64
-from .tensor import Tensor
+from ..tensor import Tensor
 
 class sigmoid:
     def __call__(self, x : Tensor):
@@ -13,6 +13,7 @@ class sigmoid:
             if x.grad is None:
                 x.grad = Tensor(np.zeros_like(x.data))
             sigmoid_grad = out.data * (1 - out.data)
+            # chain rule
             x.grad += sigmoid_grad * out.grad
 
         out._backward = _backward
@@ -24,35 +25,14 @@ class tanh():
     def __call__(self, x : Tensor):
         value = (np.exp(x) - np.exp(-(x))) / (np.exp(x) + np.exp(-(x)))
         out = Tensor(value, x.requires_grad)
-
+        # w
         def _backward():
-            
-            sigmoid_grad = out.data * (1 - out.data)
-            x.grad += sigmoid.grad * out.grad
+            if x.grad is None:
+                x.grad = np.zeros_like(x.data)
+            tanh_grad = 1 - (out.data * out.data)
+            x.grad += tanh_grad * out.grad
 
         out._backward = _backward
         out._prev = [x]    
 
-        return out
-
-class NN():
-    def __init__(self, data):
-        self.data = Tensor(data)
-
-    def sigmoid(self):
-        value = 1/(1 + np.exp(-(self.data)))
-
-        return value
-    
-    def tanh(self):
-        value = (np.exp(self.data) - np.exp(-(self.data))) / (np.exp(self.data) + np.exp(-(self.data)))
-
-        return value
-      
-    def linear(input, in_features, out_features):
-        weights = np.random.randn(in_features, out_features)
-        biases = Tensor.randn(out_features)
-
-        layer_output = Tensor.matmul(input, weights)
-        layer_output = layer_output - biases
-        return layer_output
+        return out    

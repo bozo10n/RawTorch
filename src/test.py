@@ -1,4 +1,5 @@
-from tentorch import Tensor, NN, sigmoid
+from tentorch import Tensor, NN
+from tentorch import sigmoid
 import numpy as np
 
 def test_tensor_creation():
@@ -48,6 +49,7 @@ def verify_gradients():
     if hasattr(x, 'grad') and x.grad is not None:
         sigmoid_grad = y.data * (1 - y.data)
         # Compare the underlying numpy arrays
+        print(x.grad)
         assert np.allclose(x.grad.data if isinstance(x.grad, Tensor) else x.grad, sigmoid_grad), "Sigmoid gradient computation error"
         print("✓ Sigmoid gradient test passed")
     else:
