@@ -19,31 +19,61 @@ class Tensor:
             self.grad = np.ones_like(self.data)
 
         queue = [self]
-
+        visited = set()
         while queue:
             current_tensor = queue.pop()
+            if current_tensor in visited:
+                visited.add(current_tensor)
 
             if current_tensor._backward:
                 current_tensor._backward()
 
-            queue.extend(current_tensor._prev)        
+            queue.extend(current_tensor._prev)       
+
+    def _visualize_graph(self):
+        def recurse(tensor, visited=None, indent=0, prefix=""):
+            if visited is None:
+                visited = set()
+
+            if id(tensor) in visited:
+                print(f"{' ' * (indent * 2)}{prefix}└── {repr(tensor)} (already visited)")
+                return
+            visited.add(id(tensor))
+
+            connector = f"{prefix}└── " if prefix else ""
+            print(f"{' ' * (indent * 2)}{connector}{repr(tensor)}")
+
+            for i, child in enumerate(tensor._prev):
+                next_prefix = "│   " if i < len(tensor._prev) - 1 else "    "
+                recurse(child, visited=visited, indent=indent + 1, prefix=next_prefix)
+
+        print("\nComputation Graph:")
+        recurse(self)
+         
     
     def broadcast(self, other):
         if isinstance(other, Tensor):
-            other = other.data
-        
-        broadcasted_data = broadcast_to(other, self.shape)
-
-        return broadcasted_data
+            if other.requires_grad:
+                other_data = other.data
+                broadcasted_data = (other_data, self.shape)
+                requires_grad = True
+            else:
+                broadcasted_data = other.data
+                requires_grad = self.requires_grad
+        else:
+            broadcasted_data = other
+            requires_grad = self.requires_grad
+    
+        return Tensor(broadcasted_data, requires_grad=requires_grad)
 
     def __add__(self, other):
-        # to ensure other.data is a tensor
         if isinstance(other, Tensor):
-            out = Tensor(self.data + other.data, requires_grad=self.requires_grad or other.requires_grad)
+            other = self.broadcast(other) if other.shape != self.shape else other
         else:
-            out = Tensor(self.data + other, requires_grad=self.requires_grad or other)
+            other = Tensor(other)  # Convert to Tensor for compatibility
+            
+        out = Tensor(self.data + other.data, requires_grad=self.requires_grad or other.requires_grad)
         
-
         def _backward():
             if self.grad is None:
                 self.grad = np.zeros_like(self.data)
@@ -62,9 +92,11 @@ class Tensor:
     def __sub__(self, other):
         # to ensure other.data is a tensor
         if isinstance(other, Tensor):
-            out = Tensor(self.data - other.data, requires_grad=self.requires_grad or other.requires_grad)
+            other = self.broadcast(other) if other.shape != self.shape else other
         else:
-            out = Tensor(self.data - other, requires_grad=self.requires_grad or other)
+            other = Tensor(other)
+
+        out = Tensor(self.data - other.data, requires_grad=self.requires_grad or other.requires_grad)
 
         def _backward():
             if self.grad is None:
@@ -84,9 +116,12 @@ class Tensor:
     
     def __mul__(self, other):
         if isinstance(other, Tensor):
-            out = Tensor(self.data * other.data, requires_grad=self.requires_grad or other.requires_grad)
+            other = self.broadcast(other) if other.shape != self.shape else other
         else:
-            out = Tensor(self.data * other, requires_grad=self.requires_grad or other)
+            other = Tensor(other)
+
+        out = Tensor(self.data * other.data, requires_grad=self.requires_grad or other.requires_grad)
+
 
         def _backward():
             if self.grad is None:
@@ -103,24 +138,47 @@ class Tensor:
         return out             
     
     def matmul(self, other):
-        if isinstance(other, Tensor):
-            out = Tensor(np.dot(self.data, other.data), requires_grad=self.requires_grad or other.requires_grad)
+        if not isinstance(other, Tensor):
+            other = Tensor(other)
+
+        if len(self.shape) == 1 and len(other.shape) == 1:
+            if self.shape[0] != other.shape[0]:
+                raise ValueError(f"Incompatible shapes for dot product: {self.shape} and {other.shape}")
+            out_shape = ()
+        elif len(self.shape) == 1 and len(other.shape) == 2:
+            if self.shape[0] != other.shape[0]:
+                raise ValueError(f"Incompatible shapes for vector-matrix product: {self.shape} and {other.shape}")
+            out_shape = (other.shape[1],)
+        elif len(self.shape) == 2 and len(other.shape) == 1:
+            if self.shape[1] != other.shape[0]:
+                raise ValueError(f"Incompatible shapes for matrix-vector product: {self.shape} and {other.shape}")
+            out_shape = (self.shape[0],)
         else:
-            out = Tensor(np.dot(self.data, other), requires_grad=self.requires_grad or other)
+            if self.shape[-1] != other.shape[0]:
+                raise ValueError(f"Incompatible shapes for matrix multiplication: {self.shape} and {other.shape}")
+            out_shape = self.shape[:-1] + other.shape[1:]
+
+        out = Tensor(np.matmul(self.data, other.data), requires_grad=self.requires_grad or other.requires_grad)
 
         def _backward():
-            if self.grad is None:
-                self.grad = np.zeros_like(self.data)
-            if other.grad is None:
-                other.grad = np.zeros_like(other.data)    
+            if self.requires_grad:
+                if len(self.shape) == 1 and len(other.shape) == 1:
+                    self.grad = self.grad + (other.data * out.grad) if self.grad is not None else other.data * out.grad
+                else:
+                    grad_shape = np.matmul(out.grad.reshape(*out_shape), other.data.T.reshape(other.shape[-1], -1))
+                    self.grad = self.grad + grad_shape if self.grad is not None else grad_shape
 
-            self.grad += np.dot(out.grad, other.data.T)    
-            other.grad += np.dot( self.data.T, out.grad)
+            if other.requires_grad:
+                if len(self.shape) == 1 and len(other.shape) == 1:
+                    other.grad = other.grad + (self.data * out.grad) if other.grad is not None else self.data * out.grad
+                else:
+                    grad_shape = np.matmul(self.data.T.reshape(-1, self.shape[-1]), out.grad.reshape(*out_shape))
+                    other.grad = other.grad + grad_shape if other.grad is not None else grad_shape
 
         out._backward = _backward
         out._prev = [self, other]
+        return out
 
-        return out    
     
     def randn(shape):
         return Tensor(np.random.randn(shape))

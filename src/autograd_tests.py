@@ -56,6 +56,7 @@ class TestTensor(unittest.TestCase):
         a = Tensor([[1, 2], [3, 4]], requires_grad=True)
         b = Tensor([10, 20], requires_grad=True)
         broadcasted_b = a.broadcast(b)
+        print(broadcasted_b)
         self.assertTrue(np.array_equal(broadcasted_b, np.array([[10, 20], [10, 20]])))
 
     def test_matmul(self):
@@ -69,6 +70,8 @@ class TestTensor(unittest.TestCase):
         b = Tensor([[5, 6], [7, 8]], requires_grad=True)
         c = a.matmul(b)
         c.backward()
+        print(a.grad, np.dot(np.ones_like(c.data), b.data.T))
+        print(b.grad, np.dot(a.data.T, np.ones_like(c.data)))
         self.assertTrue(np.array_equal(a.grad, np.dot(np.ones_like(c.data), b.data.T)))
         self.assertTrue(np.array_equal(b.grad, np.dot(a.data.T, np.ones_like(c.data))))
 
