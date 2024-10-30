@@ -2,6 +2,6 @@ from .activations import sigmoid
 
 from .nn import NN
 
-from .layers import linear
+from .layers import Linear
 
-from .loss import loss
+from .loss import MSELoss

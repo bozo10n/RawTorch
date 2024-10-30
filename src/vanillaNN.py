@@ -2,10 +2,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 from tentorch import Tensor
-from tentorch import linear as Linear  # Import directly from the root
+from tentorch import Linear
 import matplotlib.pyplot as plt
 import networkx as nx
-from tentorch import loss as Loss
+from tentorch import MSELoss as Loss
 
 def build_graph(tensor, G=None, visited=None, parent=None):
     if G is None:
@@ -54,6 +54,10 @@ def test_custom_vs_torch():
     output_dim = 4
     learning_rate = 0.01
 
+    # Set seeds for reproducibility
+    np.random.seed(42)
+    torch.manual_seed(42)
+    
     # Generate random data
     X = np.random.randn(batch_size, input_dim)
     y = np.random.randn(batch_size, output_dim)
@@ -61,8 +65,8 @@ def test_custom_vs_torch():
     # Custom implementation
     class CustomNet:
         def __init__(self):
-            self.layer1 = Linear(input_dim, hidden_dim)
-            self.layer2 = Linear(hidden_dim, output_dim)
+            self.layer1 = Linear(input_dim, hidden_dim, seed=42)  # Add seed parameter
+            self.layer2 = Linear(hidden_dim, output_dim, seed=43)  # Different seed for second layer
         
         def __call__(self, x):
             x = self.layer1(x)
@@ -90,6 +94,17 @@ def test_custom_vs_torch():
     custom_net = CustomNet()
     torch_net = TorchNet()
 
+    # Get the weights from custom network
+    w1, b1 = custom_net.layer1.get_weights_and_bias()
+    w2, b2 = custom_net.layer2.get_weights_and_bias()
+
+    # Initialize PyTorch network with the same weights
+    with torch.no_grad():
+        torch_net.layer1.weight.data = torch.tensor(w1.T, dtype=torch.float32)
+        torch_net.layer1.bias.data = torch.tensor(b1, dtype=torch.float32)
+        torch_net.layer2.weight.data = torch.tensor(w2.T, dtype=torch.float32)
+        torch_net.layer2.bias.data = torch.tensor(b2, dtype=torch.float32)
+
     # Convert data to tensors
     X_tensor = Tensor(X)
     X_torch = torch.tensor(X, requires_grad=True, dtype=torch.float32)
@@ -111,7 +126,12 @@ def test_custom_vs_torch():
     print(f"PyTorch Loss: {torch_loss.item():.6f}")
     print(f"Difference: {abs(custom_loss.data - torch_loss.item()):.6f}")
 
-    
+    # Print initial weights comparison
+    print("\nInitial Weights Comparison:")
+    print("Layer 1 weight diff:", np.abs(w1 - torch_net.layer1.weight.data.numpy().T).mean())
+    print("Layer 1 bias diff:", np.abs(b1 - torch_net.layer1.bias.data.numpy()).mean())
+    print("Layer 2 weight diff:", np.abs(w2 - torch_net.layer2.weight.data.numpy().T).mean())
+    print("Layer 2 bias diff:", np.abs(b2 - torch_net.layer2.bias.data.numpy()).mean())
 
     # Backward pass
     custom_loss.backward()
@@ -121,7 +141,7 @@ def test_custom_vs_torch():
     custom_graph = build_graph(custom_loss)
     visualize_graph(custom_graph, "Custom Implementation Computation Graph")
 
-    # Print gradients
+    # Print gradients comparison
     print("\nGradient Comparison:")
     custom_params = custom_net.parameters()
     torch_params = list(torch_net.parameters())
@@ -130,6 +150,8 @@ def test_custom_vs_torch():
         if custom_p.grad is not None and torch_p.grad is not None:
             grad_diff = np.abs(custom_p.grad - torch_p.grad.numpy().T).mean()
             print(f"Parameter {i} gradient difference: {grad_diff:.6f}")
+            print(f"Custom grad norm: {np.linalg.norm(custom_p.grad):.6f}")
+            print(f"Torch grad norm: {torch.norm(torch_p.grad).item():.6f}")
         else:
             print(f"Parameter {i} gradients are None")
 
@@ -154,6 +176,13 @@ def test_custom_vs_torch():
     print(f"Custom Loss: {custom_loss_after.data:.6f}")
     print(f"PyTorch Loss: {torch_loss_after.item():.6f}")
     print(f"Difference: {abs(custom_loss_after.data - torch_loss_after.item()):.6f}")
+
+    # Print final weights comparison
+    print("\nFinal Weights Comparison:")
+    print("Layer 1 weight diff:", np.abs(custom_net.layer1.weight.data - torch_net.layer1.weight.data.numpy().T).mean())
+    print("Layer 1 bias diff:", np.abs(custom_net.layer1.bias.data - torch_net.layer1.bias.data.numpy()).mean())
+    print("Layer 2 weight diff:", np.abs(custom_net.layer2.weight.data - torch_net.layer2.weight.data.numpy().T).mean())
+    print("Layer 2 bias diff:", np.abs(custom_net.layer2.bias.data - torch_net.layer2.bias.data.numpy()).mean())
 
 if __name__ == "__main__":
     test_custom_vs_torch()

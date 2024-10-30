@@ -1,7 +1,7 @@
 from ..tensor import Tensor
 import numpy as np
 
-class loss():
+class MSELoss():
     def __call__(self, pred : Tensor, target : Tensor):
         diff = pred - target
         out = Tensor((diff.data ** 2).mean(), requires_grad=True)
