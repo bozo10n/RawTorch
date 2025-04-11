@@ -2,7 +2,7 @@
 name = "tentorch"
 version = "0.1.0"
 description = "A custom PyTorch alternative with advanced features."
-authors = ["Shridhara Pavel R U <shridharapavel@example.com>"]
+authors = [""]
 license = "MIT"
 readme = "README.md"
 
