@@ -15,6 +15,8 @@ __global__ void vector_sum(float *a, float *b, float *c)
     }
 }
 
+
+
 int main(void)
 {
     float *a, *b, *c;
