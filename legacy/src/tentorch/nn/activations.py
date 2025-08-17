@@ -23,7 +23,7 @@ class sigmoid:
     
 class tanh():
     def __call__(self, x : Tensor):
-        value = (np.exp(x) - np.exp(-(x))) / (np.exp(x) + np.exp(-(x)))
+        value = (np.exp(x.data) - np.exp(-(x.data))) / (np.exp(x.data) + np.exp(-(x.data)))
         out = Tensor(value, x.requires_grad)
         # w
         def _backward():
@@ -35,4 +35,4 @@ class tanh():
         out._backward = _backward
         out._prev = [x]    
 
-        return out    
+        return out

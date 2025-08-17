@@ -1,0 +1,13 @@
+# Just some compilation commands for my kernels and c++ code
+
+```
+c++ -O3  -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) add.cpp -o add$(python3-config --extension-suffix)
+```
+
+```
+c++ -O3  -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) add.cpp -o add$(python3-config --extension-suffix)
+```
+c++ -O3 -Wall -shared -std=c++17 -fPIC     -Icore/include     $(python3 -m pybind11 --includes)    ../ core/cpu/add.cpp binding/binding.cpp     -o rawtorch$(python3-config --extension-suffix)
+
+# Command to run the XOR demo
+python3 legacy/src/xor_demo.py
